@@ -17,3 +17,7 @@ To set lines where to increase numbers, select appropriate lines and press `CTRL
 ![Figure 3](https://github.com/michaljerabek/1-2-3/blob/master/figure3.gif)
 
 You can remove saved lines with `CTRL`+`ALT`+`SHIFT`+`F11`.
+
+---
+
+The extension also adds commands into the `Edit` menu.

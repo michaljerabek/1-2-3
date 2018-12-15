@@ -193,7 +193,7 @@ define(function (require, exports, module) {
 
             return {
                 selection: selection,
-                isNumber: !!text.match(/-?[0-9.]+/),
+                isNumber: !!text.match(/^-?[0-9.]+$/),
                 isEmpty: !text.length,
                 text: text
             };

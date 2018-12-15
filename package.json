@@ -1,7 +1,7 @@
 {
   "name": "mjerabek.cz.1-2-3",
   "title": "1-2-3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Press CTRL/ALT+F11 to generate sequence of numbers. With CTRL+ALT+F11 you can set lines where to increase numbers. See GitHub for usage examples.",
   "main": "main.js",
   "homepage": "https://github.com/michaljerabek/1-2-3",
