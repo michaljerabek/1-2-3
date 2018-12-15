@@ -1,4 +1,4 @@
-# 1-2-3 — Sequence of numbers generator for [Brackets](http://brackets.io/) 
+# 1-2-3 — Number sequence generator for [Brackets](http://brackets.io/) 
 
 ## Basic usage
 
