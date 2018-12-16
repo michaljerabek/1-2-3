@@ -104,7 +104,9 @@ define(function (require, exports, module) {
 
             if (cycleAfter) {
 
-                decimalIndex = decimalIndex.mod(cycleAfter);
+                var decimalCycleAfter = new Decimal(cycleAfter);
+
+                decimalIndex = decimalIndex.mod(decimalCycleAfter.mul(groups).toNumber());
             }
 
             var seq = decimalStep.mul(Math.floor(decimalIndex.div(groups).toNumber())).toNumber(),
@@ -293,7 +295,7 @@ define(function (require, exports, module) {
                     <input id="${ID.groupsInput}" type="number" value="1" min="1" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
                 </div>
                 <div style="padding: 0 8px;">
-                    <label for="${ID.cycleAfter}" style="display: ${savedLineNumbers ? "none": "block"};">Cycle after</label>
+                    <label for="${ID.cycleAfter}" style="display: ${savedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
                     <input id="${ID.cycleAfter}" type="number" value="" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
                 </div>
                 <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers ? "block": "none"};">
@@ -302,7 +304,6 @@ define(function (require, exports, module) {
                 ${ savedLineNumbers ? `<p id="${ID.groupsNote}" style="flex-basis: 100%; padding: 16px 8px 0 8px; margin: 0;"><a href="#">Do not use saved line numbers (remove).</a></p>` : "" }
             </div>
         `;
-
 
 
         var dialog = getDialog(content, "Rewrite", "Cancel"),
