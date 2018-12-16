@@ -17,7 +17,8 @@ define(function (require, exports, module) {
             linesAsStart: NS + "__lines-as-start",
             linesAsStartWrapper: NS + "__lines-as-start-wrapper",
             cycleAfter: NS + "__cycle-after",
-            groupsNote: NS + "__groups-note"
+            groupsNote: NS + "__groups-note",
+            autoRemove: NS + "__auto-remove"
         };
 
 
@@ -42,6 +43,7 @@ define(function (require, exports, module) {
     var origin = "mjerabek.cz.1-2-3",
         originCounter = 0,
 
+        autoRemove = false,
         savedLineNumbers = null;
 
 
@@ -199,7 +201,10 @@ define(function (require, exports, module) {
 
         applyChanges(editor, changes, origin);
 
-        savedLineNumbers = null;
+        if (autoRemove) {
+
+            savedLineNumbers = null;
+        }
     }
 
     function getSelections(editor) {
@@ -513,16 +518,33 @@ define(function (require, exports, module) {
             return;
         }
 
-        var dialog = getDialog(
-            "Save <a href='#' onclick='this.nextElementSibling.style.display = \"inline\"'>" + lineNumbers.length + "</a><span style='display: none'> (" + String(lineNumbers).replace(/,/g, ", ") + ")</span> lines?",
+        var dialog = getDialog(`
+            Save <a href='#' onclick='this.nextElementSibling.style.display = \"inline\"'>${lineNumbers.length}</a><span style='display: none'> (${String(lineNumbers).replace(/,/g, ", ")})</span> lines?
+            <div style="padding: 16px 0 0 0;">
+                <label for="${ID.autoRemove}"><input type="checkbox" id="${ID.autoRemove}" checked style="margin-top: 2px; margin-bottom: 0px;"> Remove after usage.</label>
+            </div>
+            `,
             "Save", "Cancel"
         );
+
+        var $dialogEl = dialog.getElement();
+
+        $dialogEl.on("keyup." + NS, "input", function (event) {
+
+            if (event.which === 13) { //enter
+
+                $dialogEl
+                    .find("[data-button-id='" + Dialogs.DIALOG_BTN_OK + "']")
+                    .click();
+            }
+        });
 
         dialog.done(function (btnId) {
 
             if (btnId === Dialogs.DIALOG_BTN_OK) {
 
                 savedLineNumbers = lineNumbers;
+                autoRemove = $dialogEl.find("#" + ID.autoRemove).prop("checked");
             }
         });
     }
