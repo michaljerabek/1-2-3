@@ -337,6 +337,14 @@ define(function (require, exports, module) {
             }
         });
 
+        $dialogEl.on("mouseup." + NS, "input", function (event) {
+
+            if (this.select) {
+
+                this.select();
+            }
+        });
+
         if (savedLineNumbers) {
 
             $dialogEl.on("change." + NS, "#" + ID.linesAsStart, function (event) {

@@ -18,6 +18,10 @@ To set lines where to increase numbers, select appropriate lines and press `CTRL
 
 You can remove saved lines with `CTRL`+`ALT`+`SHIFT`+`F11`.
 
+## Multisequence
+
+![Figure 4](https://github.com/michaljerabek/1-2-3/blob/master/figure4.gif)
+
 ---
 
 The extension also adds commands into the `Edit` menu.
