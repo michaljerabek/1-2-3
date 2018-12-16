@@ -14,6 +14,9 @@ define(function (require, exports, module) {
             initialNumberInput: NS + "__initial-number",
             stepInput: NS + "__step",
             groupsInput: NS + "__groups",
+            linesAsStart: NS + "__lines-as-start",
+            linesAsStartWrapper: NS + "__lines-as-start-wrapper",
+            cycleAfter: NS + "__cycle-after",
             groupsNote: NS + "__groups-note"
         };
 
@@ -86,7 +89,7 @@ define(function (require, exports, module) {
         }
     }
 
-    function getChangesByStep(initialNumber, step, groups) {
+    function getChangesByStep(initialNumber, step, groups, cycleAfter) {
 
         var inlineTextPositionChange = {};
 
@@ -94,9 +97,19 @@ define(function (require, exports, module) {
 
             inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
 
-            var decimalNumber = new Decimal(initialNumber),
+            var decimalInitNumber = new Decimal(initialNumber),
 
-                text = String(decimalNumber.add(step * Math.floor(i / groups)).toNumber()),
+                decimalStep = new Decimal(step),
+                decimalIndex = new Decimal(i);
+
+            if (cycleAfter) {
+
+                decimalIndex = decimalIndex.mod(cycleAfter);
+            }
+
+            var seq = decimalStep.mul(Math.floor(decimalIndex.div(groups).toNumber())).toNumber(),
+
+                text = String(decimalInitNumber.add(seq).toNumber()),
 
                 endSelection = {
                     start: {
@@ -119,7 +132,7 @@ define(function (require, exports, module) {
         };
     }
 
-    function getChangesBySavedLines(initialNumber, step) {
+    function getChangesBySavedLines(initialNumber, step, groups, linesAsStart) {
 
         var inlineTextPositionChange = {},
 
@@ -133,14 +146,26 @@ define(function (require, exports, module) {
 
             if (typeof savedLines[0] === "number" && n.selection.start.line >= savedLines[0]) {
 
-                stepper++;
+                stepper = linesAsStart ? -1 : stepper + 1;
 
                 savedLines.shift();
             }
 
-            var decimalNumber = new Decimal(initialNumber),
+            if (linesAsStart) {
 
-                text = String(decimalNumber.add(step * stepper).toNumber()),
+                stepper++;
+            }
+
+            var decimalInitNumber = new Decimal(initialNumber),
+
+                decimalStep = new Decimal(step),
+                decimalStepper = new Decimal(stepper);
+
+            var seq = groups && groups > 1 ?
+                    decimalStep.mul(Math.floor(decimalStepper.div(groups).toNumber())).toNumber() :
+                    decimalStep.mul(stepper).toNumber(),
+
+                text = String(decimalInitNumber.add(seq).toNumber()),
 
                 endSelection = {
                     start: {
@@ -163,11 +188,11 @@ define(function (require, exports, module) {
         };
     }
 
-    function replaceNumbers(editor, origin, initialNumber, numbers, step, groups) {
+    function replaceNumbers(editor, origin, initialNumber, numbers, step, groups, cycleAfter, linesAsStart) {
 
         var changes = numbers.map(
-            savedLineNumbers ? getChangesBySavedLines(initialNumber, step):
-            getChangesByStep(initialNumber, step, groups)
+            savedLineNumbers ? getChangesBySavedLines(initialNumber, step, groups, linesAsStart):
+                getChangesByStep(initialNumber, step, groups, cycleAfter)
         );
 
         applyChanges(editor, changes, origin);
@@ -267,9 +292,18 @@ define(function (require, exports, module) {
                     <label for="${ID.groupsInput}" style="display: ${savedLineNumbers ? "none": "block"};">Groups of</label>
                     <input id="${ID.groupsInput}" type="number" value="1" min="1" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
                 </div>
-                ${ savedLineNumbers ? `<p id="${ID.groupsNote}" style="flex-basis: 100%; padding: 8px 8px 0 8px; margin: 0;">There are saved line numbers to determine positions to increase numbers. <a href="#">Remove and use exact number of selections</a>.</p>` : "" }
+                <div style="padding: 0 8px;">
+                    <label for="${ID.cycleAfter}" style="display: ${savedLineNumbers ? "none": "block"};">Cycle after</label>
+                    <input id="${ID.cycleAfter}" type="number" value="" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
+                </div>
+                <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers ? "block": "none"};">
+                    <label for="${ID.linesAsStart}"><input type="checkbox" id="${ID.linesAsStart}" style="margin-top: 2px; margin-bottom: 0px;"> Use saved line numbers to start new sequences.</label>
+                </div>
+                ${ savedLineNumbers ? `<p id="${ID.groupsNote}" style="flex-basis: 100%; padding: 16px 8px 0 8px; margin: 0;"><a href="#">Do not use saved line numbers (remove).</a></p>` : "" }
             </div>
         `;
+
+
 
         var dialog = getDialog(content, "Rewrite", "Cancel"),
 
@@ -287,29 +321,84 @@ define(function (require, exports, module) {
 
         if (savedLineNumbers) {
 
+            $dialogEl.on("change." + NS, "#" + ID.linesAsStart, function (event) {
+
+                if (this.checked) {
+
+                    $dialogEl.find("#" + ID.groupsInput)
+                        .prop("disabled", false)
+                        .css({
+                            display: "initial",
+                            opacity: 0
+                        })
+                        .stop()
+                        .fadeTo(200, 1);
+
+                    $dialogEl.find("label[for='" + ID.groupsInput + "']")
+                        .css({
+                            display: "block",
+                            opacity: 0
+                        })
+                        .stop()
+                        .fadeTo(200, 1);
+
+                } else {
+
+                    $dialogEl.find("#" + ID.groupsInput)
+                        .prop("disabled", true)
+                        .stop()
+                        .fadeTo(200, 0, function () {
+
+                            $(this).css({
+                                display: "none"
+                            });
+                        });
+
+                    $dialogEl.find("label[for='" + ID.groupsInput + "']")
+                        .stop()
+                        .fadeTo(200, 0, function () {
+
+                            $(this).css({
+                                display: "none"
+                            });
+                        });
+                }
+            });
+
             $dialogEl.on("click." + NS, "#" + ID.groupsNote + " a", function (event) {
 
-                var $note = $dialogEl.find("#" + ID.groupsNote);
+                var $note = $dialogEl.find("#" + ID.groupsNote),
+                    $linesAsStart = $dialogEl.find("#" + ID.linesAsStartWrapper);
 
-                $note.fadeTo(200, 0, function () {
-                    $note.slideUp(150, function () {
+                $note.stop().fadeTo(200, 0, function () {
+                    $note.stop().slideUp(150, function () {
                         $note.remove();
                     });
                 });
 
-                $dialogEl.find("#" + ID.groupsInput)
+                $linesAsStart.stop().fadeTo(200, 0, function () {
+                    $linesAsStart.stop().slideUp(150, function () {
+                        $linesAsStart.remove();
+                    });
+                });
+
+                $dialogEl.find(["#" + ID.groupsInput, "#" + ID.cycleAfter].join(","))
+                    .filter(":hidden")
                     .prop("disabled", false)
                     .css({
                         display: "initial",
                         opacity: 0
                     })
+                    .stop()
                     .fadeTo(200, 1);
 
-                $dialogEl.find("label[for='" + ID.groupsInput + "']")
+                $dialogEl.find("label[for='" + ID.groupsInput + "']" + ", label[for='" + ID.cycleAfter + "']")
+                    .filter(":hidden")
                     .css({
                         display: "block",
                         opacity: 0
                     })
+                    .stop()
                     .fadeTo(200, 1);
 
                 savedLineNumbers = null;
@@ -330,7 +419,9 @@ define(function (require, exports, module) {
         return {
             initialNumber: $dialogEl.find("#" + ID.initialNumberInput).val() || 0,
             step: $dialogEl.find("#" + ID.stepInput).val() || 1,
-            groups: $dialogEl.find("#" + ID.groupsInput).val() || 1
+            groups: $dialogEl.find("#" + ID.groupsInput).val() || 1,
+            cycle: $dialogEl.find("#" + ID.cycleAfter).val() || 0,
+            linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked")
         };
     }
 
@@ -364,7 +455,7 @@ define(function (require, exports, module) {
 
                     var options = getOptionsFromDialog(optionsDialog.getElement());
 
-                    replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups);
+                    replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups, options.cycle, options.linesAsStart);
                 }
             });
 
@@ -384,7 +475,7 @@ define(function (require, exports, module) {
 
                             var options = getOptionsFromDialog(optionsDialog.getElement());
 
-                            replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups);
+                            replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups, options.cycle, options.linesAsStart);
                         }
                     });
                 }
