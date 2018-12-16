@@ -382,6 +382,9 @@ define(function (require, exports, module) {
                     });
                 });
 
+                $linesAsStart.find("input")
+                    .prop("disabled", true);
+
                 $dialogEl.find(["#" + ID.groupsInput, "#" + ID.cycleAfter].join(","))
                     .filter(":hidden")
                     .prop("disabled", false)
@@ -510,7 +513,7 @@ define(function (require, exports, module) {
         }
 
         var dialog = getDialog(
-            "Save following lines: " + String(lineNumbers).replace(/,/g, ", ") + "?",
+            "Save <a href='#' onclick='this.nextElementSibling.style.display = \"inline\"'>" + lineNumbers.length + "</a><span style='display: none'> (" + String(lineNumbers).replace(/,/g, ", ") + ")</span> lines?",
             "Save", "Cancel"
         );
 
