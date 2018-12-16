@@ -93,20 +93,24 @@ define(function (require, exports, module) {
 
     function getChangesByStep(initialNumber, step, groups, cycleAfter) {
 
-        var inlineTextPositionChange = {};
+        var inlineTextPositionChange = {},
+
+            decimalInitNumber = new Decimal(initialNumber),
+            decimalStep = new Decimal(step),
+            decimalCycleAfter = null;
+
+        if (cycleAfter) {
+
+            decimalCycleAfter = new Decimal(cycleAfter);
+        }
 
         return function (n, i) {
 
             inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
 
-            var decimalInitNumber = new Decimal(initialNumber),
+            var decimalIndex = new Decimal(i);
 
-                decimalStep = new Decimal(step),
-                decimalIndex = new Decimal(i);
-
-            if (cycleAfter) {
-
-                var decimalCycleAfter = new Decimal(cycleAfter);
+            if (decimalCycleAfter) {
 
                 decimalIndex = decimalIndex.mod(decimalCycleAfter.mul(groups).toNumber());
             }
@@ -140,6 +144,9 @@ define(function (require, exports, module) {
 
         var inlineTextPositionChange = {},
 
+            decimalInitNumber = new Decimal(initialNumber),
+            decimalStep = new Decimal(step),
+
             savedLines = savedLineNumbers.slice(0),
 
             stepper = -1;
@@ -160,12 +167,9 @@ define(function (require, exports, module) {
                 stepper++;
             }
 
-            var decimalInitNumber = new Decimal(initialNumber),
+            var decimalStepper = new Decimal(stepper),
 
-                decimalStep = new Decimal(step),
-                decimalStepper = new Decimal(stepper);
-
-            var seq = groups && groups > 1 ?
+                seq = groups && groups > 1 ?
                     decimalStep.mul(Math.floor(decimalStepper.div(groups).toNumber())).toNumber() :
                     decimalStep.mul(stepper).toNumber(),
 
