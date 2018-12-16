@@ -192,11 +192,11 @@ define(function (require, exports, module) {
         };
     }
 
-    function replaceNumbers(editor, origin, initialNumber, numbers, step, groups, cycleAfter, linesAsStart) {
+    function replaceNumbers(editor, origin, numbers, options) {
 
         var changes = numbers.map(
-            savedLineNumbers ? getChangesBySavedLines(initialNumber, step, groups, linesAsStart):
-                getChangesByStep(initialNumber, step, groups, cycleAfter)
+            savedLineNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart):
+                getChangesByStep(options.initialNumber, options.step, options.groups, options.cycle)
         );
 
         applyChanges(editor, changes, origin);
@@ -267,7 +267,11 @@ define(function (require, exports, module) {
 
         if (numbers.every(function (n) { return n.isNumber; }) || numbers.every(function (n) { return n.isEmpty; })) {
 
-            replaceNumbers(editor, (origin + originCounter++), initialNumber, numbers, 1, 1);
+            replaceNumbers(editor, (origin + originCounter++), numbers, {
+                initialNumber: initialNumber,
+                step: 1,
+                groups: 1
+            });
 
         } else {
 
@@ -277,7 +281,11 @@ define(function (require, exports, module) {
 
                 if (btnId === Dialogs.DIALOG_BTN_OK) {
 
-                    replaceNumbers(editor, (origin + originCounter++), initialNumber, numbers, 1, 1);
+                    replaceNumbers(editor, (origin + originCounter++), numbers, {
+                        initialNumber: initialNumber,
+                        step: 1,
+                        groups: 1
+                    });
                 }
             });
         }
@@ -464,7 +472,7 @@ define(function (require, exports, module) {
 
                     var options = getOptionsFromDialog(optionsDialog.getElement());
 
-                    replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups, options.cycle, options.linesAsStart);
+                    replaceNumbers(editor, (origin + originCounter++), numbers, options);
                 }
             });
 
@@ -484,7 +492,7 @@ define(function (require, exports, module) {
 
                             var options = getOptionsFromDialog(optionsDialog.getElement());
 
-                            replaceNumbers(editor, (origin + originCounter++), options.initialNumber, numbers, options.step, options.groups, options.cycle, options.linesAsStart);
+                            replaceNumbers(editor, (origin + originCounter++), numbers, options);
                         }
                     });
                 }
