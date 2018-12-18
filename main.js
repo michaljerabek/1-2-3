@@ -262,6 +262,8 @@ define(function (require, exports, module) {
 
         if (!editor) {
 
+            ignoreSavedLineNumbers = false;
+
             return false;
         }
 
@@ -272,6 +274,8 @@ define(function (require, exports, module) {
         if (numbers.length < 2) {
 
             getMoreSelectionsDialog();
+
+            ignoreSavedLineNumbers = false;
 
             return;
         }
@@ -297,6 +301,10 @@ define(function (require, exports, module) {
                         step: 1,
                         groups: 1
                     });
+
+                } else {
+
+                    ignoreSavedLineNumbers = false;
                 }
             });
         }
@@ -497,6 +505,8 @@ define(function (require, exports, module) {
 
         if (!editor) {
 
+            ignoreSavedLineNumbers = false;
+
             return false;
         }
 
@@ -507,6 +517,8 @@ define(function (require, exports, module) {
         if (numbers.length < 2) {
 
             getMoreSelectionsDialog();
+
+            ignoreSavedLineNumbers = false;
 
             return;
         }
@@ -522,6 +534,10 @@ define(function (require, exports, module) {
                     var options = getOptionsFromDialog(optionsDialog.getElement());
 
                     replaceNumbers(editor, (origin + originCounter++), numbers, options);
+
+                } else {
+
+                    ignoreSavedLineNumbers = false;
                 }
             });
 
@@ -542,8 +558,15 @@ define(function (require, exports, module) {
                             var options = getOptionsFromDialog(optionsDialog.getElement());
 
                             replaceNumbers(editor, (origin + originCounter++), numbers, options);
+
+                        } else {
+
+                            ignoreSavedLineNumbers = false;
                         }
                     });
+                } else {
+
+                    ignoreSavedLineNumbers = false;
                 }
             });
         }
