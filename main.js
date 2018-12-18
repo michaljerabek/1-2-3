@@ -630,10 +630,10 @@ define(function (require, exports, module) {
     }
 
 
-    CommandManager.register("Generate sequence of numbers", generateSequenceCommand, execGenerateSequence);
-    CommandManager.register("Generate sequence of numbers + ignore saved line numbers", generateSequenceIgnoreLinesCommand, execGenerateSequenceIgnoreLinesCommand);
-    CommandManager.register("Open dialog to generate sequence of numbers", generateSequenceWithOptionsCommand, execGenerateSequenceWithOptions);
-    CommandManager.register("Open dialog to generate sequence of numbers + ignore saved line numbers", generateSequenceWithOptionsIgnoreLinesCommand, execGenerateSequenceWithOptionsIgnoreLines);
+    CommandManager.register("Generate number sequence", generateSequenceCommand, execGenerateSequence);
+    CommandManager.register("Generate number sequence + ignore saved lines", generateSequenceIgnoreLinesCommand, execGenerateSequenceIgnoreLinesCommand);
+    CommandManager.register("Open sequence generator", generateSequenceWithOptionsCommand, execGenerateSequenceWithOptions);
+    CommandManager.register("Open sequence generator + ignore saved lines", generateSequenceWithOptionsIgnoreLinesCommand, execGenerateSequenceWithOptionsIgnoreLines);
     CommandManager.register("Save line numbers", saveLineNumbersCommand, execSaveLineNumbers);
     CommandManager.register("Remove saved line numbers", removeSavedLineNumbersCommand, execRemoveSavedLineNumbers);
 
@@ -686,6 +686,7 @@ define(function (require, exports, module) {
     editMenu.addMenuItem(generateSequenceCommand);
     editMenu.addMenuItem(generateSequenceIgnoreLinesCommand);
     editMenu.addMenuItem(generateSequenceWithOptionsCommand);
+    editMenu.addMenuItem(generateSequenceWithOptionsIgnoreLinesCommand);
     editMenu.addMenuItem(saveLineNumbersCommand);
     editMenu.addMenuItem(removeSavedLineNumbersCommand);
 

@@ -1,5 +1,7 @@
 # 1-2-3 — Number sequence generator for [Brackets](http://brackets.io/) 
 
+*GIFs below were created with an older version with a different UI, but in general it works the same.*
+
 ## Basic usage
 
 Press `CTRL`+`F11` to generate numbers. Press `ALT`+`F11` to set some options. 
@@ -17,6 +19,8 @@ To set lines where to increase numbers, select appropriate lines and press `CTRL
 ![Figure 3](https://github.com/michaljerabek/1-2-3/blob/master/figure3.gif)
 
 You can remove saved lines with `CTRL`+`ALT`+`SHIFT`+`F11`.
+
+To ignore them, you can generate numbers with `CTRL`+`SHIFT`+`F11` or `ALT`+`SHIFT`+`F11`.
 
 ## Multisequence
 
