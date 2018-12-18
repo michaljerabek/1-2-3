@@ -313,7 +313,7 @@ define(function (require, exports, module) {
                 </div>
                 <div style="padding: 0 8px;">
                     <label for="${ID.cycleAfter}" style="display: ${savedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
-                    <input id="${ID.cycleAfter}" type="number" value="" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
+                    <input id="${ID.cycleAfter}" type="number" value="" min="2" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
                 </div>
                 <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers ? "block": "none"};">
                     <label for="${ID.linesAsStart}"><input type="checkbox" id="${ID.linesAsStart}" style="margin-top: 2px; margin-bottom: 0px;"> Use saved line numbers to start new sequences.</label>
@@ -445,13 +445,25 @@ define(function (require, exports, module) {
 
     function getOptionsFromDialog($dialogEl) {
 
-        return {
+        var options = {
             initialNumber: $dialogEl.find("#" + ID.initialNumberInput).val() || 0,
             step: $dialogEl.find("#" + ID.stepInput).val() || 1,
             groups: $dialogEl.find("#" + ID.groupsInput).val() || 1,
             cycle: $dialogEl.find("#" + ID.cycleAfter).val() || 0,
             linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked")
         };
+
+        if (options.groups < 1) {
+
+            options.groups = 1;
+        }
+
+        if (options.cycle < 1) {
+
+            options.cycle = 0;
+        }
+
+        return options;
     }
 
     function execGenerateSequenceWithOptions() {
