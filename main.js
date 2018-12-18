@@ -16,9 +16,11 @@ define(function (require, exports, module) {
             groupsInput: NS + "__groups",
             linesAsStart: NS + "__lines-as-start",
             linesAsStartWrapper: NS + "__lines-as-start-wrapper",
-            cycleAfter: NS + "__cycle-after",
+            cycleAfterInput: NS + "__cycle-after",
             groupsNote: NS + "__groups-note",
-            autoRemove: NS + "__auto-remove"
+            autoRemoveInput: NS + "__auto-remove",
+            removeLineNumbers: NS + "__remove-line-numbers",
+            ignoreLineNumbers: NS + "__ignore-line-numbers"
         };
 
 
@@ -35,7 +37,9 @@ define(function (require, exports, module) {
 
 
     var generateSequenceCommand = "mjerabek.cz.1-2-3.generate-sequence",
+        generateSequenceIgnoreLinesCommand = "mjerabek.cz.1-2-3.generate-sequence-ignore-lines",
         generateSequenceWithOptionsCommand = "mjerabek.cz.1-2-3.generate-sequence-with-options",
+        generateSequenceWithOptionsIgnoreLinesCommand = "mjerabek.cz.1-2-3.generate-sequence-with-options-ignore-lines",
         saveLineNumbersCommand = "mjerabek.cz.1-2-3.save-line-numbers",
         removeSavedLineNumbersCommand = "mjerabek.cz.1-2-3.remove-saved-line-numbers";
 
@@ -44,6 +48,7 @@ define(function (require, exports, module) {
         originCounter = 0,
 
         autoRemove = false,
+        ignoreSavedLineNumbers = false,
         savedLineNumbers = null;
 
 
@@ -199,7 +204,7 @@ define(function (require, exports, module) {
     function replaceNumbers(editor, origin, numbers, options) {
 
         var changes = numbers.map(
-            savedLineNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart):
+            savedLineNumbers && !ignoreSavedLineNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart):
                 getChangesByStep(options.initialNumber, options.step, options.groups, options.cycle)
         );
 
@@ -209,6 +214,8 @@ define(function (require, exports, module) {
 
             savedLineNumbers = null;
         }
+
+        ignoreSavedLineNumbers = false;
     }
 
     function getSelections(editor) {
@@ -295,6 +302,13 @@ define(function (require, exports, module) {
         }
     }
 
+    function execGenerateSequenceIgnoreLinesCommand() {
+
+        ignoreSavedLineNumbers = true;
+
+        execGenerateSequence();
+    }
+
     function getOptionsDialog(initialNumber) {
 
         var content = `
@@ -308,17 +322,17 @@ define(function (require, exports, module) {
                     <input id="${ID.stepInput}" type="number" value="1" style="max-width: 100px;">
                 </div>
                 <div style="padding: 0 8px;">
-                    <label for="${ID.groupsInput}" style="display: ${savedLineNumbers ? "none": "block"};">Groups of</label>
-                    <input id="${ID.groupsInput}" type="number" value="1" min="1" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
+                    <label for="${ID.groupsInput}" style="display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "block"};">Groups of</label>
+                    <input id="${ID.groupsInput}" type="number" value="1" min="1" step="1" ${ savedLineNumbers && !ignoreSavedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "initial"}">
                 </div>
                 <div style="padding: 0 8px;">
-                    <label for="${ID.cycleAfter}" style="display: ${savedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
-                    <input id="${ID.cycleAfter}" type="number" value="" min="2" step="1" ${ savedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers ? "none": "initial"}">
+                    <label for="${ID.cycleAfterInput}" style="display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
+                    <input id="${ID.cycleAfterInput}" type="number" value="" min="2" step="1" ${ savedLineNumbers && !ignoreSavedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "initial"}">
                 </div>
-                <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers ? "block": "none"};">
+                <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "block": "none"};">
                     <label for="${ID.linesAsStart}"><input type="checkbox" id="${ID.linesAsStart}" style="margin-top: 2px; margin-bottom: 0px;"> Use saved line numbers to start new sequences.</label>
                 </div>
-                ${ savedLineNumbers ? `<p id="${ID.groupsNote}" style="flex-basis: 100%; padding: 16px 8px 0 8px; margin: 0;"><a href="#">Do not use saved line numbers (remove).</a></p>` : "" }
+                ${ savedLineNumbers && !ignoreSavedLineNumbers ? `<p id="${ID.groupsNote}" style="flex-basis: 100%; padding: 16px 8px 0 8px; margin: 0;">There are saved line numbers: <a href="#" id="${ID.removeLineNumbers}">Remove</a> | <a href="#" id="${ID.ignoreLineNumbers}">Ignore</a></p>` : "" }
             </div>
         `;
 
@@ -393,7 +407,10 @@ define(function (require, exports, module) {
 
             $dialogEl.on("click." + NS, "#" + ID.groupsNote + " a", function (event) {
 
-                var $note = $dialogEl.find("#" + ID.groupsNote),
+                var remove = $(event.target).is("#" + ID.removeLineNumbers),
+                    ignore = !remove,
+
+                    $note = $dialogEl.find("#" + ID.groupsNote),
                     $linesAsStart = $dialogEl.find("#" + ID.linesAsStartWrapper);
 
                 $note.stop().fadeTo(200, 0, function () {
@@ -411,7 +428,7 @@ define(function (require, exports, module) {
                 $linesAsStart.find("input")
                     .prop("disabled", true);
 
-                $dialogEl.find(["#" + ID.groupsInput, "#" + ID.cycleAfter].join(","))
+                $dialogEl.find(["#" + ID.groupsInput, "#" + ID.cycleAfterInput].join(","))
                     .filter(":hidden")
                     .prop("disabled", false)
                     .css({
@@ -421,7 +438,7 @@ define(function (require, exports, module) {
                     .stop()
                     .fadeTo(200, 1);
 
-                $dialogEl.find("label[for='" + ID.groupsInput + "']" + ", label[for='" + ID.cycleAfter + "']")
+                $dialogEl.find("label[for='" + ID.groupsInput + "']" + ", label[for='" + ID.cycleAfterInput + "']")
                     .filter(":hidden")
                     .css({
                         display: "block",
@@ -430,7 +447,15 @@ define(function (require, exports, module) {
                     .stop()
                     .fadeTo(200, 1);
 
-                savedLineNumbers = null;
+                if (remove) {
+
+                    savedLineNumbers = null;
+                }
+
+                if (ignore) {
+
+                    ignoreSavedLineNumbers = true;
+                }
 
                 return false;
             });
@@ -449,7 +474,7 @@ define(function (require, exports, module) {
             initialNumber: $dialogEl.find("#" + ID.initialNumberInput).val() || 0,
             step: $dialogEl.find("#" + ID.stepInput).val() || 1,
             groups: $dialogEl.find("#" + ID.groupsInput).val() || 1,
-            cycle: $dialogEl.find("#" + ID.cycleAfter).val() || 0,
+            cycle: $dialogEl.find("#" + ID.cycleAfterInput).val() || 0,
             linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked")
         };
 
@@ -524,6 +549,13 @@ define(function (require, exports, module) {
         }
     }
 
+    function execGenerateSequenceWithOptionsIgnoreLines() {
+
+        ignoreSavedLineNumbers = true;
+
+        execGenerateSequenceWithOptions();
+    }
+
     function execSaveLineNumbers() {
 
         var editor = EditorManager.getActiveEditor();
@@ -551,9 +583,9 @@ define(function (require, exports, module) {
         }
 
         var dialog = getDialog(`
-            Save <a href='#' onclick='this.nextElementSibling.style.display = \"inline\"'>${lineNumbers.length}</a><span style='display: none'> (${String(lineNumbers).replace(/,/g, ", ")})</span> lines?
+            Save <a href='#' onclick='this.nextElementSibling.style.display = \"inline\"'>${lineNumbers.length}</a><span style='display: none'> (${String(lineNumbers).replace(/,/g, ", ")})</span> line numbers?
             <div style="padding: 16px 0 0 0;">
-                <label for="${ID.autoRemove}"><input type="checkbox" id="${ID.autoRemove}" checked style="margin-top: 2px; margin-bottom: 0px;"> Remove after usage.</label>
+                <label for="${ID.autoRemoveInput}"><input type="checkbox" id="${ID.autoRemoveInput}" checked style="margin-top: 2px; margin-bottom: 0px;"> Remove numbers after usage.</label>
             </div>
             `,
             "Save", "Cancel"
@@ -576,7 +608,7 @@ define(function (require, exports, module) {
             if (btnId === Dialogs.DIALOG_BTN_OK) {
 
                 savedLineNumbers = lineNumbers;
-                autoRemove = $dialogEl.find("#" + ID.autoRemove).prop("checked");
+                autoRemove = $dialogEl.find("#" + ID.autoRemoveInput).prop("checked");
             }
         });
     }
@@ -599,7 +631,9 @@ define(function (require, exports, module) {
 
 
     CommandManager.register("Generate sequence of numbers", generateSequenceCommand, execGenerateSequence);
+    CommandManager.register("Generate sequence of numbers + ignore saved line numbers", generateSequenceIgnoreLinesCommand, execGenerateSequenceIgnoreLinesCommand);
     CommandManager.register("Open dialog to generate sequence of numbers", generateSequenceWithOptionsCommand, execGenerateSequenceWithOptions);
+    CommandManager.register("Open dialog to generate sequence of numbers + ignore saved line numbers", generateSequenceWithOptionsIgnoreLinesCommand, execGenerateSequenceWithOptionsIgnoreLines);
     CommandManager.register("Save line numbers", saveLineNumbersCommand, execSaveLineNumbers);
     CommandManager.register("Remove saved line numbers", removeSavedLineNumbersCommand, execRemoveSavedLineNumbers);
 
@@ -608,6 +642,20 @@ define(function (require, exports, module) {
 
         KeyBindingManager.addBinding(generateSequenceCommand, {
             key: "Ctrl-" + FKEY
+        });
+    }
+
+    if (!KeyBindingManager.getKeyBindings(generateSequenceIgnoreLinesCommand).length) {
+
+        KeyBindingManager.addBinding(generateSequenceIgnoreLinesCommand, {
+            key: "Ctrl-Shift-" + FKEY
+        });
+    }
+
+    if (!KeyBindingManager.getKeyBindings(generateSequenceWithOptionsIgnoreLinesCommand).length) {
+
+        KeyBindingManager.addBinding(generateSequenceWithOptionsIgnoreLinesCommand, {
+            key: "Alt-Shift-" + FKEY
         });
     }
 
@@ -636,6 +684,7 @@ define(function (require, exports, module) {
 
     editMenu.addMenuDivider();
     editMenu.addMenuItem(generateSequenceCommand);
+    editMenu.addMenuItem(generateSequenceIgnoreLinesCommand);
     editMenu.addMenuItem(generateSequenceWithOptionsCommand);
     editMenu.addMenuItem(saveLineNumbersCommand);
     editMenu.addMenuItem(removeSavedLineNumbersCommand);
