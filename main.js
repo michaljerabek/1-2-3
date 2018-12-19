@@ -160,7 +160,7 @@ define(function (require, exports, module) {
 
             inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
 
-            if (typeof savedLines[0] === "number" && n.selection.start.line >= savedLines[0]) {
+            while (typeof savedLines[0] === "number" && n.selection.start.line >= savedLines[0]) {
 
                 stepper = linesAsStart ? -1 : stepper + 1;
 
