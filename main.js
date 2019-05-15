@@ -20,7 +20,8 @@ define(function (require, exports, module) {
             groupsNote: NS + "__groups-note",
             autoRemoveInput: NS + "__auto-remove",
             removeLineNumbers: NS + "__remove-line-numbers",
-            ignoreLineNumbers: NS + "__ignore-line-numbers"
+            ignoreLineNumbers: NS + "__ignore-line-numbers",
+            reverse: NS + "__reverse"
         };
 
 
@@ -75,6 +76,38 @@ define(function (require, exports, module) {
         }
 
         return Dialogs.showModalDialog(NS, TITLE, content, btns);
+    }
+
+    function getNumbersReversedButSortedByLines(numbers) {
+
+        var numbersByLine = [],
+            lastLineNumber = -1;
+
+        numbers.forEach(function (n) {
+
+            if (lastLineNumber !== n.selection.start.line) {
+
+                numbersByLine.push([]);
+
+                lastLineNumber = n.selection.start.line;
+            }
+
+            if (numbersByLine.length) {
+
+                numbersByLine[numbersByLine.length - 1].push(n);
+            }
+        });
+
+        numbers = [];
+
+        numbersByLine.forEach(function (nsByLine) {
+
+            nsByLine.reverse();
+
+            numbers = numbers.concat(nsByLine);
+        });
+
+        return numbers;
     }
 
     function applyChanges(editor, changes, origin) {
@@ -145,7 +178,7 @@ define(function (require, exports, module) {
         };
     }
 
-    function getChangesBySavedLines(initialNumber, step, groups, linesAsStart) {
+    function getChangesBySavedLines(initialNumber, step, groups, linesAsStart, reverse) {
 
         var inlineTextPositionChange = {},
 
@@ -154,15 +187,21 @@ define(function (require, exports, module) {
 
             savedLines = savedLineNumbers.slice(0),
 
-            stepper = -1;
+            stepper = reverse ? savedLines.length: -1;
 
         return function (n) {
 
             inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
 
-            while (typeof savedLines[0] === "number" && n.selection.start.line >= savedLines[0]) {
+            while (typeof savedLines[0] === "number" &&
+                ((!reverse && n.selection.start.line >= savedLines[0]) ||
+                 ( reverse && n.selection.start.line >  savedLines[0]))
+            ) {
 
-                stepper = linesAsStart ? -1 : stepper + 1;
+                stepper = linesAsStart ? -1:
+                    reverse ?
+                        stepper - 1:
+                        stepper + 1;
 
                 savedLines.shift();
             }
@@ -203,8 +242,20 @@ define(function (require, exports, module) {
 
     function replaceNumbers(editor, origin, numbers, options) {
 
+        var useSavedNumbers = savedLineNumbers && !ignoreSavedLineNumbers;
+
+        if (options.reverse && !useSavedNumbers) {
+
+            numbers.reverse();
+        }
+
+        if (options.linesAsStart && useSavedNumbers) {
+
+            numbers = getNumbersReversedButSortedByLines(numbers);
+        }
+
         var changes = numbers.map(
-            savedLineNumbers && !ignoreSavedLineNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart):
+            useSavedNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart, options.reverse):
                 getChangesByStep(options.initialNumber, options.step, options.groups, options.cycle)
         );
 
@@ -336,6 +387,9 @@ define(function (require, exports, module) {
                 <div style="padding: 0 8px;">
                     <label for="${ID.cycleAfterInput}" style="display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
                     <input id="${ID.cycleAfterInput}" type="number" value="" min="2" step="1" ${ savedLineNumbers && !ignoreSavedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "initial"}">
+                </div>
+                <div style="flex-basis: 100%; padding: 16px 8px 0 8px; display: block;">
+                    <label for="${ID.reverse}"><input type="checkbox" id="${ID.reverse}" style="margin-top: 2px; margin-bottom: 0px;"> Reverse</label>
                 </div>
                 <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "block": "none"};">
                     <label for="${ID.linesAsStart}"><input type="checkbox" id="${ID.linesAsStart}" style="margin-top: 2px; margin-bottom: 0px;"> Use saved line numbers to start new sequences.</label>
@@ -483,7 +537,8 @@ define(function (require, exports, module) {
             step: $dialogEl.find("#" + ID.stepInput).val() || 1,
             groups: $dialogEl.find("#" + ID.groupsInput).val() || 1,
             cycle: $dialogEl.find("#" + ID.cycleAfterInput).val() || 0,
-            linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked")
+            linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked"),
+            reverse: $dialogEl.find("#" + ID.reverse).prop("checked")
         };
 
         if (options.groups < 1) {
