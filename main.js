@@ -21,7 +21,8 @@ define(function (require, exports, module) {
             autoRemoveInput: NS + "__auto-remove",
             removeLineNumbers: NS + "__remove-line-numbers",
             ignoreLineNumbers: NS + "__ignore-line-numbers",
-            reverse: NS + "__reverse"
+            reverse: NS + "__reverse",
+            random: NS + "__random"
         };
 
 
@@ -52,6 +53,61 @@ define(function (require, exports, module) {
         ignoreSavedLineNumbers = false,
         savedLineNumbers = null;
 
+    function shuffleArray(array) {
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+    }
+
+    function flattenArray(array) {
+
+        return array.reduce(function (acc, val) {
+            return acc.concat(val);
+        }, []);
+    }
+
+    function groupArrayByCount(array, count, flat) {
+
+        array = array.reduce(function (acc, val, i) {
+
+            if ((i % count) === 0) {
+
+                acc.push([]);
+            }
+
+            acc[acc.length - 1].push(val);
+
+            return acc;
+
+        }, []);
+
+        return !flat ? array: flattenArray(array);
+    }
+
+    function groupNumbersByLines(numbers, lineNumbers) {
+
+        lineNumbers = lineNumbers.slice(0);
+
+        var groupedNumbers = [[]],
+            lastLineNumber = lineNumbers.shift();
+
+        numbers.forEach(function (n) {
+
+            if (n.selection.start.line >= lastLineNumber) {
+
+                groupedNumbers.push([]);
+
+                lastLineNumber = lineNumbers.shift();
+            }
+
+            groupedNumbers[groupedNumbers.length - 1].push(n);
+        });
+
+        return groupedNumbers;
+    }
 
     function getDialog(content, okBtn, cancelBtn) {
 
@@ -78,38 +134,6 @@ define(function (require, exports, module) {
         return Dialogs.showModalDialog(NS, TITLE, content, btns);
     }
 
-    function getNumbersReversedButSortedByLines(numbers) {
-
-        var numbersByLine = [],
-            lastLineNumber = -1;
-
-        numbers.forEach(function (n) {
-
-            if (lastLineNumber !== n.selection.start.line) {
-
-                numbersByLine.push([]);
-
-                lastLineNumber = n.selection.start.line;
-            }
-
-            if (numbersByLine.length) {
-
-                numbersByLine[numbersByLine.length - 1].push(n);
-            }
-        });
-
-        numbers = [];
-
-        numbersByLine.forEach(function (nsByLine) {
-
-            nsByLine.reverse();
-
-            numbers = numbers.concat(nsByLine);
-        });
-
-        return numbers;
-    }
-
     function applyChanges(editor, changes, origin) {
 
         if (changes && changes.length) {
@@ -131,9 +155,7 @@ define(function (require, exports, module) {
 
     function getChangesByStep(initialNumber, step, groups, cycleAfter) {
 
-        var inlineTextPositionChange = {},
-
-            decimalInitNumber = new Decimal(initialNumber),
+        var decimalInitNumber = new Decimal(initialNumber),
             decimalStep = new Decimal(step),
             decimalCycleAfter = null;
 
@@ -144,8 +166,6 @@ define(function (require, exports, module) {
 
         return function (n, i) {
 
-            inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
-
             var decimalIndex = new Decimal(i);
 
             if (decimalCycleAfter) {
@@ -155,55 +175,81 @@ define(function (require, exports, module) {
 
             var seq = decimalStep.mul(Math.floor(decimalIndex.div(groups).toNumber())).toNumber(),
 
-                text = String(decimalInitNumber.add(seq).toNumber()),
-
-                endSelection = {
-                    start: {
-                        line: n.selection.start.line,
-                        ch: n.selection.start.ch + inlineTextPositionChange[n.selection.start.line]
-                    },
-                    end: {
-                        line: n.selection.end.line,
-                        ch: n.selection.start.ch + text.length + inlineTextPositionChange[n.selection.start.line]
-                    }
-                };
-
-            inlineTextPositionChange[n.selection.start.line] += text.length - (n.selection.end.ch - n.selection.start.ch);
+                text = String(decimalInitNumber.add(seq).toNumber());
 
             return {
                 selection: n.selection,
-                endSelection: endSelection,
                 numberText: text
             };
         };
     }
 
-    function getChangesBySavedLines(initialNumber, step, groups, linesAsStart, reverse) {
+    function getSelectionChanges(changes, order) {
 
-        var inlineTextPositionChange = {},
+        var inlineTextPositionChange = {};
 
-            decimalInitNumber = new Decimal(initialNumber),
-            decimalStep = new Decimal(step),
+        changes.sort(function (a, b) {
+            return order.findIndex(function (o) { return o.selection === a.selection; }) - order.findIndex(function (o) { return o.selection === b.selection; });
+        });
 
-            savedLines = savedLineNumbers.slice(0),
-
-            stepper = reverse ? savedLines.length: -1;
-
-        return function (n) {
+        return changes.map(function (n, i) {
 
             inlineTextPositionChange[n.selection.start.line] = inlineTextPositionChange[n.selection.start.line] || 0;
 
-            while (typeof savedLines[0] === "number" &&
-                ((!reverse && n.selection.start.line >= savedLines[0]) ||
-                 ( reverse && n.selection.start.line >  savedLines[0]))
-            ) {
+            var endSelection = {
+                start: {
+                    line: n.selection.start.line,
+                    ch: n.selection.start.ch + inlineTextPositionChange[n.selection.start.line]
+                },
+                end: {
+                    line: n.selection.end.line,
+                    ch: n.selection.start.ch + n.numberText.length + inlineTextPositionChange[n.selection.start.line]
+                }
+            };
 
-                stepper = linesAsStart ? -1:
-                    reverse ?
-                        stepper - 1:
-                        stepper + 1;
+            inlineTextPositionChange[n.selection.start.line] += n.numberText.length - (n.selection.end.ch - n.selection.start.ch);
 
-                savedLines.shift();
+            return {
+                selection: n.selection,
+                endSelection: endSelection,
+                numberText: n.numberText
+            };
+        });
+    }
+
+    function getChangesBySavedLines(initialNumber, step, groups, linesAsStart, reverse, random) {
+
+        var decimalInitNumber = new Decimal(initialNumber),
+            decimalStep = new Decimal(step),
+
+            savedLines = reverse ? savedLineNumbers.slice(0).reverse(): savedLineNumbers.slice(0),
+            lastLineNumber,
+
+            stepper = -1,
+            lastGroup = -1;
+
+        return function (n, i) {
+
+            if (random && !linesAsStart) {
+
+                if (lastGroup !== n.group) {
+
+                    stepper++;
+
+                    lastGroup = n.group;
+                }
+            } else {
+
+
+                while (typeof savedLines[0] === "number" &&
+                    ((!reverse && n.selection.start.line >= savedLines[0]) ||
+                     ( reverse && n.selection.start.line <  savedLines[0]))
+                ) {
+
+                    stepper = linesAsStart ? -1: stepper + 1;
+
+                    savedLines.shift();
+                }
             }
 
             if (linesAsStart) {
@@ -217,47 +263,142 @@ define(function (require, exports, module) {
                     decimalStep.mul(Math.floor(decimalStepper.div(groups).toNumber())).toNumber() :
                     decimalStep.mul(stepper).toNumber(),
 
-                text = String(decimalInitNumber.add(seq).toNumber()),
-
-                endSelection = {
-                    start: {
-                        line: n.selection.start.line,
-                        ch: n.selection.start.ch + inlineTextPositionChange[n.selection.start.line]
-                    },
-                    end: {
-                        line: n.selection.end.line,
-                        ch: n.selection.start.ch + text.length + inlineTextPositionChange[n.selection.start.line]
-                    }
-                };
-
-            inlineTextPositionChange[n.selection.start.line] += text.length - (n.selection.end.ch - n.selection.start.ch);
+                text = String(decimalInitNumber.add(seq).toNumber());
 
             return {
                 selection: n.selection,
-                endSelection: endSelection,
                 numberText: text
             };
         };
     }
 
+    function randomizeNumbers(numbers, options, useSavedNumbers) {
+
+        if (!useSavedNumbers) {
+
+            if (+options.groups === 1) {
+
+                if (options.cycle) {
+
+                    numbers = groupArrayByCount(numbers, options.cycle, false);
+
+                    numbers.sort(function (a, b) {
+                        return b.length - a.length;
+                    });
+
+                    numbers = numbers.reduce(function (acc, val) {
+                        shuffleArray(val);
+                        return acc.concat(val);
+                    }, []);
+
+                } else {
+
+                    shuffleArray(numbers);
+                }
+
+            } else {
+
+                if (options.cycle) {
+
+                    numbers = groupArrayByCount(numbers, options.groups, false);
+                    numbers = groupArrayByCount(numbers, options.cycle, false);
+
+                    numbers = numbers.map(function (cycle) {
+
+                        shuffleArray(cycle);
+
+                        cycle.sort(function (a, b) {
+                            return b.length - a.length;
+                        });
+
+                        return cycle;
+                    });
+
+                    numbers = flattenArray(
+                        flattenArray(numbers)
+                    );
+                } else {
+
+                    numbers = groupArrayByCount(numbers, options.groups, false);
+
+                    shuffleArray(numbers);
+
+                    numbers.sort(function (a, b) {
+                        return b.length - a.length;
+                    });
+
+                    numbers = flattenArray(numbers);
+                }
+            }
+
+        } else {
+
+            if (options.linesAsStart) {
+
+                numbers = groupNumbersByLines(numbers, savedLineNumbers);
+                numbers = flattenArray(numbers.map(function (group) {
+
+                    if (+options.groups === 1) {
+
+                        shuffleArray(group);
+
+                    } else {
+
+                        group = groupArrayByCount(group, options.groups, false);
+
+                        shuffleArray(group);
+
+                        group.sort(function (a, b) {
+                            return b.length - a.length;
+                        });
+
+                        group = flattenArray(group);
+                    }
+
+                    return group;
+                }));
+
+            } else {
+
+                numbers = groupNumbersByLines(numbers, savedLineNumbers);
+
+                numbers = numbers.map(function (group, g) {
+                    return group.map(function (n) {
+                        n.group = g;
+                        return n;
+                    });
+                });
+
+                shuffleArray(numbers);
+
+                numbers = flattenArray(numbers);
+            }
+        }
+
+        return numbers;
+    }
+
     function replaceNumbers(editor, origin, numbers, options) {
 
-        var useSavedNumbers = savedLineNumbers && !ignoreSavedLineNumbers;
+        var originalOrder = Array.prototype.slice.call(numbers),
+            useSavedNumbers = savedLineNumbers && !ignoreSavedLineNumbers;
 
-        if (options.reverse && !useSavedNumbers) {
+        if (options.reverse) {
 
             numbers.reverse();
         }
 
-        if (options.linesAsStart && useSavedNumbers) {
+        if (options.random) {
 
-            numbers = getNumbersReversedButSortedByLines(numbers);
+            numbers = randomizeNumbers(numbers, options, useSavedNumbers);
         }
 
         var changes = numbers.map(
-            useSavedNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart, options.reverse):
-                getChangesByStep(options.initialNumber, options.step, options.groups, options.cycle)
-        );
+                useSavedNumbers ? getChangesBySavedLines(options.initialNumber, options.step, options.groups, options.linesAsStart, options.reverse, options.random):
+                    getChangesByStep(options.initialNumber, options.step, options.groups, options.cycle)
+            );
+
+        changes = getSelectionChanges(changes, originalOrder);
 
         applyChanges(editor, changes, origin);
 
@@ -388,8 +529,13 @@ define(function (require, exports, module) {
                     <label for="${ID.cycleAfterInput}" style="display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "block"};">Cycle after (groups)</label>
                     <input id="${ID.cycleAfterInput}" type="number" value="" min="2" step="1" ${ savedLineNumbers && !ignoreSavedLineNumbers ? "disabled" : "" } style="max-width: 100px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "none": "initial"}">
                 </div>
-                <div style="flex-basis: 100%; padding: 16px 8px 0 8px; display: block;">
-                    <label for="${ID.reverse}"><input type="checkbox" id="${ID.reverse}" style="margin-top: 2px; margin-bottom: 0px;"> Reverse</label>
+                <div style="flex-basis: 100%; display: flex; flex-wrap: wrap;">
+                    <div style="padding: 16px 8px 0 8px;">
+                        <label for="${ID.reverse}"><input type="checkbox" id="${ID.reverse}" style="margin-top: 2px; margin-bottom: 0px;"> Reverse</label>
+                    </div>
+                    <div style="padding: 16px 8px 0 8px;">
+                        <label for="${ID.random}"><input type="checkbox" id="${ID.random}" style="margin-top: 2px; margin-bottom: 0px;"> Random (order)</label>
+                    </div>
                 </div>
                 <div id="${ID.linesAsStartWrapper}" style="flex-basis: 100%; padding: 16px 8px 0 8px; display: ${savedLineNumbers && !ignoreSavedLineNumbers ? "block": "none"};">
                     <label for="${ID.linesAsStart}"><input type="checkbox" id="${ID.linesAsStart}" style="margin-top: 2px; margin-bottom: 0px;"> Use saved line numbers to start new sequences.</label>
@@ -418,6 +564,28 @@ define(function (require, exports, module) {
             if (this.select) {
 
                 this.select();
+            }
+        });
+
+        $dialogEl.on("change." + NS, "#" + ID.reverse + ", #" + ID.random, function (event) {
+
+            var $reverse = $dialogEl.find("#" + ID.reverse),
+                $random = $dialogEl.find("#" + ID.random);
+
+            if (event.target === $reverse[0]) {
+
+                if ($reverse.prop("checked")) {
+
+                    $random.prop("checked", false);
+                }
+            }
+
+            if (event.target === $random[0]) {
+
+                if ($random.prop("checked")) {
+
+                    $reverse.prop("checked", false);
+                }
             }
         });
 
@@ -538,7 +706,8 @@ define(function (require, exports, module) {
             groups: $dialogEl.find("#" + ID.groupsInput).val() || 1,
             cycle: $dialogEl.find("#" + ID.cycleAfterInput).val() || 0,
             linesAsStart: $dialogEl.find("#" + ID.linesAsStart).prop("checked"),
-            reverse: $dialogEl.find("#" + ID.reverse).prop("checked")
+            reverse: $dialogEl.find("#" + ID.reverse).prop("checked"),
+            random: $dialogEl.find("#" + ID.random).prop("checked")
         };
 
         if (options.groups < 1) {
