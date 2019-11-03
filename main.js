@@ -54,9 +54,12 @@ define(function (require, exports, module) {
         savedLineNumbers = null;
 
     function shuffleArray(array) {
+
         for (var i = array.length - 1; i > 0; i--) {
+
             var j = Math.floor(Math.random() * (i + 1));
             var temp = array[i];
+
             array[i] = array[j];
             array[j] = temp;
         }
@@ -174,7 +177,6 @@ define(function (require, exports, module) {
             }
 
             var seq = decimalStep.mul(Math.floor(decimalIndex.div(groups).toNumber())).toNumber(),
-
                 text = String(decimalInitNumber.add(seq).toNumber());
 
             return {
@@ -240,7 +242,6 @@ define(function (require, exports, module) {
                 }
             } else {
 
-
                 while (typeof savedLines[0] === "number" &&
                     ((!reverse && n.selection.start.line >= savedLines[0]) ||
                      ( reverse && n.selection.start.line <  savedLines[0]))
@@ -295,7 +296,6 @@ define(function (require, exports, module) {
 
                     shuffleArray(numbers);
                 }
-
             } else {
 
                 if (options.cycle) {
@@ -330,7 +330,6 @@ define(function (require, exports, module) {
                     numbers = flattenArray(numbers);
                 }
             }
-
         } else {
 
             if (options.linesAsStart) {
