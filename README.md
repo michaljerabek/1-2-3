@@ -1,6 +1,6 @@
-# 1-2-3 — Number sequence generator for [Brackets](http://brackets.io/) 
+# 1-2-3 — Number sequence generator for [Phoenix Code](http://phcode.io/) 
 
-*GIFs below were created with an older version with a different UI, but in general it works the same.*
+*GIFs below were created with an older version with a different UI, but in general it works the same. Also the shortcut `CTRL` + `B` is by default `ALT` + `F3`.*
 
 ## Basic usage
 
@@ -28,4 +28,4 @@ To ignore them, you can generate numbers with `CTRL`+`SHIFT`+`F11` or `ALT`+`SHI
 
 ---
 
-The extension also adds commands into the `Edit` menu.
+The extension also adds commands into the `Edit` menu and a button into the toolbar. This can be changed in the editor preferences.
