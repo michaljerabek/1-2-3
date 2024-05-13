@@ -417,7 +417,7 @@ define(function (require, exports, module) {
         execGenerateSequence();
     }
 
-    function getOptionsDialog(initialNumber) {
+    function getOptionsDialog(initialNumber, okBtnText = "Generate") {
         const editor = EditorManager.getActiveEditor();
         const content = `
             <div style="display: flex; flex-wrap: wrap; margin-left: -8px; margin-right: -8px;">
@@ -458,7 +458,7 @@ define(function (require, exports, module) {
             </div>
         `;
 
-        const dialog = getDialog(content, "Rewrite", "Cancel");
+        const dialog = getDialog(content, okBtnText, "Cancel");
         const $dialogEl = dialog.getElement();
 
         addShowLineNumbersHandler($dialogEl);
@@ -635,7 +635,7 @@ define(function (require, exports, module) {
             const rewriteDialog = getRewriteDialog();
             rewriteDialog.done(function (btnId) {
                 if (btnId === Dialogs.DIALOG_BTN_OK) {
-                    const optionsDialog = getOptionsDialog(initialNumber);
+                    const optionsDialog = getOptionsDialog(initialNumber, "Rewrite");
                     optionsDialog.done(function (btnId) {
                         if (btnId === Dialogs.DIALOG_BTN_OK) {
                             const options = getOptionsFromDialog(optionsDialog.getElement());
