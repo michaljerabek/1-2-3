@@ -737,8 +737,8 @@ define(function (require, exports, module) {
     });
         
     const menuAppearanceValues = ["submenu", "items", "none"];
-    prefs.definePreference(menuAppearancePref, "String", "submenu", {
-        description: "How to show commands in the Edit menu: " + menuAppearanceValues.join(", ") + ".",
+    prefs.definePreference(menuAppearancePref, "string", "submenu", {
+        description: "How to show commands in the Edit menu.",
         values: menuAppearanceValues
     });
     const menuAppearancePrefValue = prefs.get(menuAppearancePref);
@@ -763,7 +763,7 @@ define(function (require, exports, module) {
         }
     }
     
-    prefs.definePreference(showInToolbarPref, "Boolean", true, {
+    prefs.definePreference(showInToolbarPref, "boolean", true, {
         description: "Show button in the toolbar."
     });
     const showInToolbarPrefValue = prefs.get(showInToolbarPref);
